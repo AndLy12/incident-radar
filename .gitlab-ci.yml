@@ -5,6 +5,7 @@ stages:
   - build
 
 variables:
+  GITLAB_DOCKER_PROXY: "gitlab.education.tbank.ru:443/t-academy-2026/go/materials/dependency_proxy/containers"
   GOTOOLCHAIN: local
   GOFLAGS: -mod=readonly
   GOMODCACHE: $CI_PROJECT_DIR/.cache/go-mod
@@ -12,7 +13,7 @@ variables:
   GOLANGCI_LINT_CACHE: $CI_PROJECT_DIR/.cache/golangci-lint
 
 default:
-  image: golang:1.26.6-trixie
+  image: ${GITLAB_DOCKER_PROXY}/golang:1.26.6-trixie
   interruptible: true
   cache:
     key:
@@ -25,7 +26,7 @@ default:
 lint:
   stage: lint
   image:
-    name: golangci/golangci-lint:v2.12.2-alpine
+    name: ${GITLAB_DOCKER_PROXY}/golangci/golangci-lint:v2.12.2-alpine
     entrypoint: [""]
   script:
     - go mod tidy -diff
