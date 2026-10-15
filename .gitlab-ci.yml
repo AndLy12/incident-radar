@@ -33,6 +33,12 @@ lint:
     - golangci-lint config verify
     - golangci-lint fmt --diff
     - golangci-lint run
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_ID == "29004"
+      when: always
+    - if: $CI_MERGE_REQUEST_ID
+      when: always
+    - when: never
 
 test:
   stage: test
@@ -58,6 +64,12 @@ test:
       coverage_report:
         coverage_format: cobertura
         path: coverage.xml
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_ID == "29004"
+      when: always
+    - if: $CI_MERGE_REQUEST_ID
+      when: always
+    - when: never
 
 build:
   stage: build
@@ -65,3 +77,9 @@ build:
     CGO_ENABLED: "0"
   script:
     - go build -trimpath -o bin/incident-radar ./cmd/incident-radar
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_ID == "29004"
+      when: always
+    - if: $CI_MERGE_REQUEST_ID
+      when: always
+    - when: never
