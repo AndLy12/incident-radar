@@ -55,7 +55,7 @@ make serve
 Пример проверки программы:
 
 ```bash
-make run ARGS="--path http://127.0.0.1:8000/access.txt --format markdown --output report.md"
+make run ARGS="--logsPath http://127.0.0.1:8000/access.txt --format markdown --output report.md"
 ```
 
 ## 2. Описание
@@ -91,7 +91,7 @@ glob-маске или URL, разбирает записи, фильтрует 
 Пример запуска:
 
 ```bash
-make run ARGS="--path logs/*.log --format markdown --output report.md --from 2025-03-01"
+make run ARGS="--logsPath logs/*.log --format markdown --output report.md --from 2025-03-01"
 ```
 
 Поддерживаемые параметры:
