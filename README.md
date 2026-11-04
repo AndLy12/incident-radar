@@ -1,3 +1,3 @@
-# Домашнее задание №3: Incident Radar
+Incident Radar
 
 Описание задачи: [TASK.md](TASK.md)
