@@ -3,12 +3,17 @@ package config
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"time"
 )
 
-var logsFormatExtensions []string = []string{".md", ".txt"}
+var outputFormatExtensions = map[string]string{
+	"json":     ".json",
+	"markdown": ".md",
+}
+var logsFormatExtensions []string = []string{".log", ".txt"}
 
 type Config struct {
 	logsPath         string
@@ -53,14 +58,31 @@ func (c Config) validate() error {
 	if c.logsPath == "" {
 		return fmt.Errorf("logsPath required")
 	}
+
+	if _, err := os.Stat(c.logsPath); os.IsNotExist(err) {
+		return fmt.Errorf("logsPath does not exist")
+	}
+
 	if c.format != "json" && c.format != "markdown" {
 		return fmt.Errorf("format must be json or md")
 	}
 	if c.output == "" {
 		return fmt.Errorf("output must be set")
 	}
-	if c.from != nil && c.to != nil && c.from.Before(*c.to) {
-		return fmt.Errorf("from must be <= to")
+
+	outputFileExtension := filepath.Ext(c.output)
+	if outputFileExtension != outputFormatExtensions[c.format] {
+		return fmt.Errorf("output file extension does not match format")
+	}
+	_, err := os.Stat(c.output)
+	if err == nil {
+		return fmt.Errorf("output file already exists")
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+
+	if c.from != nil && c.to != nil && (c.to.Before(*c.from) || c.to.Equal(*c.from)) {
+		return fmt.Errorf("from must be < to")
 	}
 
 	logsFileExtension := filepath.Ext(c.logsPath)

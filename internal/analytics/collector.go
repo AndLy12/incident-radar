@@ -65,7 +65,7 @@ func (c *Collector) SortResources() {
 	})
 }
 
-func (c *Collector) reverseSortSizes(sizes []int64) {
+func (c *Collector) reverseSortSizes() {
 	slices.SortFunc(c.Sizes, cmp.Compare)
 }
 
@@ -85,7 +85,7 @@ func (c *Collector) P95ResourcesSize() (int64, error) {
 	if len(c.Sizes) == 0 {
 		return 0, errors.New("no resources")
 	}
-	c.reverseSortSizes(c.Sizes)
+	c.reverseSortSizes()
 	quantity := len(c.Sizes)
 	indexFor95percent := int(math.Floor(float64(quantity) * 0.05))
 	return c.Sizes[indexFor95percent], nil
