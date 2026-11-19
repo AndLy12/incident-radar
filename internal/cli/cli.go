@@ -1,3 +1,4 @@
+// Package cli разбирает аргументы командной строки Incident Radar.
 package cli
 
 import (
@@ -8,7 +9,8 @@ import (
 	"time"
 )
 
-func Parse(Args []string, diagnostics io.Writer) (config.Config, error) {
+// Parse разбирает аргументы командной строки и возвращает проверенную конфигурацию.
+func Parse(args []string, diagnostics io.Writer) (config.Config, error) {
 	var path, format, output string
 	var toStr, fromStr string
 
@@ -27,7 +29,7 @@ func Parse(Args []string, diagnostics io.Writer) (config.Config, error) {
 	fs.StringVar(&fromStr, "from", "", "From file or directory")
 	fs.StringVar(&toStr, "to", "", "To file or directory")
 
-	if err := fs.Parse(Args); err != nil {
+	if err := fs.Parse(args); err != nil {
 		return config.Config{}, err
 	}
 	if fs.NArg() != 0 {
@@ -57,6 +59,7 @@ func Parse(Args []string, diagnostics io.Writer) (config.Config, error) {
 	return config.NewConfig(path, format, output, from, to)
 }
 
+// parseDate разбирает указанную дату в формате YYYY-MM-DD.
 func parseDate(dateStr string, has bool) (*time.Time, error) {
 	if !has {
 		return nil, nil

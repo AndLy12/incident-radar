@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// TestFilterMatchesInclusiveBounds проверяет включение обеих границ периода.
 func TestFilterMatchesInclusiveBounds(t *testing.T) {
 	from := time.Date(2025, 1, 10, 0, 0, 0, 0, time.UTC)
 	to := from.Add(24 * time.Hour)
@@ -30,6 +31,7 @@ func TestFilterMatchesInclusiveBounds(t *testing.T) {
 	}
 }
 
+// TestFilterOptionalBounds проверяет фильтр с одной границей или без границ.
 func TestFilterOptionalBounds(t *testing.T) {
 	moment := time.Date(2025, 1, 10, 0, 0, 0, 0, time.UTC)
 	for name, filter := range map[string]Filter{

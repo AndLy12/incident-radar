@@ -2,12 +2,14 @@ package parser
 
 import "testing"
 
+// TestCase описывает входные данные и ожидаемый признак ошибки для теста.
 type TestCase struct {
 	name string
 	s    string
 	err  bool
 }
 
+// TestSplitLine проверяет разбор корректных и некорректных строк лога.
 func TestSplitLine(t *testing.T) {
 	t.Helper()
 	t.Parallel()
@@ -26,7 +28,8 @@ func TestSplitLine(t *testing.T) {
 		{
 			name: "Нет квадратных скобок вокруг даты",
 			s:    "93.180.71.3 - - 17/May/2015:08:05:32 +0000 \"GET /downloads/product_1 HTTP/1.1\" 304 0 \"-\" \"Debian APT-HTTP/1.3\"",
-			err:  true},
+			err:  true,
+		},
 		{
 			name: "Нет кавычек вокруг запроса",
 			s:    "93.180.71.3 - - [17/May/2015:08:05:32 +0000] GET /downloads/product_1 HTTP/1.1 304 0 \"-\" \"Debian APT-HTTP/1.3\"",

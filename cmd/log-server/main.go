@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// main запускает локальный HTTP-сервер с примерами логов.
 func main() {
 	port := flag.String("port", "8000", "server port")
 	flag.Parse()

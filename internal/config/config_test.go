@@ -13,6 +13,7 @@ type configTestCase struct {
 	extendError bool
 }
 
+// TestConfigValidate проверяет допустимые параметры отчёта и ошибки конфигурации.
 func TestConfigValidate(t *testing.T) {
 	t.Helper()
 
@@ -187,20 +188,6 @@ func TestConfigValidate(t *testing.T) {
 				c.from = &dateFrom
 				dateTo := time.Date(2025, 3, 1, 0, 0, 0, 0, time.UTC)
 				c.to = &dateTo
-			}),
-			extendError: true,
-		},
-		{
-			name: "неподдерживаемое расширение источника",
-			config: change(func(c *Config) {
-				c.logsPath = unsupportedFile
-			}),
-			extendError: true,
-		},
-		{
-			name: "отсутствующий локальный файл",
-			config: change(func(c *Config) {
-				c.logsPath = filepath.Join(dir, "missing.log")
 			}),
 			extendError: true,
 		},

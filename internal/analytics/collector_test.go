@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// TestCollectorAddAndMetrics проверяет счётчики запросов, статусов и ресурсов, а также максимальный размер ответа.
 func TestCollectorAddAndMetrics(t *testing.T) {
 	collector := NewCollector()
 
@@ -27,6 +28,7 @@ func TestCollectorAddAndMetrics(t *testing.T) {
 	}
 }
 
+// TestCollectorAggregatesAndSortsResources проверяет сортировку ресурсов по счётчику и пути.
 func TestCollectorAggregatesAndSortsResources(t *testing.T) {
 	collector := NewCollector()
 	collector.ResourceRecords = []ResourceRecord{
@@ -46,9 +48,10 @@ func TestCollectorAggregatesAndSortsResources(t *testing.T) {
 	}
 }
 
+// TestCollectorTop10AndSizeStatistics проверяет выбор десяти ресурсов и расчёт статистики размеров.
 func TestCollectorTop10AndSizeStatistics(t *testing.T) {
 	collector := NewCollector()
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		collector.ResourceRecords = append(collector.ResourceRecords, ResourceRecord{
 			Resource: string(rune('a' + i)),
 			Count:    uint64(i),
@@ -77,6 +80,7 @@ func TestCollectorTop10AndSizeStatistics(t *testing.T) {
 	}
 }
 
+// TestCollectorEmptyStatisticsReturnErrors проверяет ошибки при расчёте статистики без данных.
 func TestCollectorEmptyStatisticsReturnErrors(t *testing.T) {
 	collector := NewCollector()
 

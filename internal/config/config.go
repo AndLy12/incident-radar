@@ -1,3 +1,4 @@
+// Package config хранит и проверяет параметры обработки логов.
 package config
 
 import (
@@ -13,8 +14,11 @@ var outputFormatExtensions = map[string]string{
 	"json":     ".json",
 	"markdown": ".md",
 }
-var logsFormatExtensions []string = []string{".log", ".txt"}
 
+// LogsFormatExtensions содержит поддерживаемые расширения файлов логов.
+var LogsFormatExtensions = []string{".log", ".txt"}
+
+// Config хранит параметры источника логов, отчёта и фильтрации по датам.
 type Config struct {
 	logsPath         string
 	format           string
@@ -24,22 +28,27 @@ type Config struct {
 	to               *time.Time
 }
 
+// LayoutForLogLine возвращает регулярное выражение для строки лога.
 func (c Config) LayoutForLogLine() regexp.Regexp {
 	return c.layoutForLogLine
 }
 
+// LogsPath возвращает путь или маску для поиска логов.
 func (c Config) LogsPath() string {
 	return c.logsPath
 }
 
+// Format возвращает формат отчёта.
 func (c Config) Format() string {
 	return c.format
 }
 
+// Output возвращает путь к файлу отчёта.
 func (c Config) Output() string {
 	return c.output
 }
 
+// From возвращает нижнюю границу периода и признак её наличия.
 func (c Config) From() (time.Time, bool) {
 	if c.from == nil {
 		return time.Time{}, false
@@ -47,6 +56,7 @@ func (c Config) From() (time.Time, bool) {
 	return *c.from, true
 }
 
+// To возвращает верхнюю границу периода и признак её наличия.
 func (c Config) To() (time.Time, bool) {
 	if c.to == nil {
 		return time.Time{}, false
@@ -54,13 +64,10 @@ func (c Config) To() (time.Time, bool) {
 	return *c.to, true
 }
 
+// validate проверяет путь к логам, параметры отчёта и порядок дат.
 func (c Config) validate() error {
 	if c.logsPath == "" {
 		return fmt.Errorf("logsPath required")
-	}
-
-	if _, err := os.Stat(c.logsPath); os.IsNotExist(err) {
-		return fmt.Errorf("logsPath does not exist")
 	}
 
 	if c.format != "json" && c.format != "markdown" {
@@ -85,19 +92,10 @@ func (c Config) validate() error {
 		return fmt.Errorf("from must be < to")
 	}
 
-	logsFileExtension := filepath.Ext(c.logsPath)
-	var flagExtNotInLogsFormatExtensions bool = true
-	for _, ext := range logsFormatExtensions {
-		if logsFileExtension == ext {
-			flagExtNotInLogsFormatExtensions = false
-		}
-	}
-	if flagExtNotInLogsFormatExtensions {
-		return fmt.Errorf("file format not supported")
-	}
 	return nil
 }
 
+// NewConfig создаёт и проверяет конфигурацию обработки логов.
 func NewConfig(path, format, output string, from, to *time.Time) (Config, error) {
 	config := Config{
 		logsPath: path,
@@ -124,6 +122,7 @@ func NewConfig(path, format, output string, from, to *time.Time) (Config, error)
 	return config, nil
 }
 
+// cloneDate копирует значение даты, сохраняя nil для отсутствующей даты.
 func cloneDate(date *time.Time) *time.Time {
 	if date == nil {
 		return nil

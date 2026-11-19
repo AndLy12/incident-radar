@@ -1,3 +1,4 @@
+// Package parser разбирает записи журнала доступа NGINX.
 package parser
 
 import (
@@ -7,6 +8,7 @@ import (
 	"time"
 )
 
+// SplitLine разбирает строку журнала доступа NGINX в LogRecord.
 func SplitLine(s string) (LogRecord, error) {
 	re := regexp.MustCompile(
 		"^(\\S+)\\s-\\s" + // ip

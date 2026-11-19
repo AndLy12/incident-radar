@@ -5,12 +5,14 @@ import (
 	"testing"
 )
 
+// TestCase описывает входные данные и ожидаемый признак ошибки для теста.
 type TestCase struct {
 	name string
 	args []string
 	err  bool
 }
 
+// TestParse проверяет обработку некорректных аргументов командной строки.
 func TestParse(t *testing.T) {
 	t.Helper()
 

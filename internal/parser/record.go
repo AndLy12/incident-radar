@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// LogRecord хранит поля одной записи журнала доступа NGINX.
 type LogRecord struct {
 	IP           string
 	Time         time.Time

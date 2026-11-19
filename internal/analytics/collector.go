@@ -1,3 +1,4 @@
+// Package analytics собирает статистику запросов и фильтрует записи по времени.
 package analytics
 
 import (
@@ -8,6 +9,7 @@ import (
 	"slices"
 )
 
+// Collector накапливает статистику по записям журнала доступа.
 type Collector struct {
 	CounterRequests   uint64
 	StatusCounters    map[int]uint64
@@ -17,11 +19,13 @@ type Collector struct {
 	Sizes             []int64
 }
 
+// ResourceRecord хранит путь ресурса и счётчик обращений.
 type ResourceRecord struct {
 	Resource string
 	Count    uint64
 }
 
+// NewCollector создаёт пустой сборщик статистики.
 func NewCollector() *Collector {
 	return &Collector{
 		CounterRequests:   0,
@@ -33,6 +37,7 @@ func NewCollector() *Collector {
 	}
 }
 
+// Add учитывает запись лога в статистике запросов и размеров ответов.
 func (c *Collector) Add(lr parser.LogRecord) {
 	c.CounterRequests++
 	if _, ok := c.StatusCounters[lr.Status]; !ok {
@@ -56,6 +61,7 @@ func (c *Collector) Add(lr parser.LogRecord) {
 	c.Sizes = append(c.Sizes, lr.ResponseSize)
 }
 
+// SortResources сортирует ресурсы по убыванию счётчика и по пути при равенстве.
 func (c *Collector) SortResources() {
 	slices.SortFunc(c.ResourceRecords, func(r1, r2 ResourceRecord) int {
 		if res1 := cmp.Compare(r2.Count, r1.Count); res1 != 0 {
@@ -65,10 +71,12 @@ func (c *Collector) SortResources() {
 	})
 }
 
+// reverseSortSizes сортирует размеры ответов по возрастанию.
 func (c *Collector) reverseSortSizes() {
 	slices.SortFunc(c.Sizes, cmp.Compare)
 }
 
+// Top10resources возвращает первые десять ресурсов после сортировки по счётчику.
 func (c *Collector) Top10resources() ([]ResourceRecord, error) {
 	if len(c.ResourceRecords) == 0 {
 		return nil, errors.New("no resource records found")
@@ -81,6 +89,7 @@ func (c *Collector) Top10resources() ([]ResourceRecord, error) {
 	return result, nil
 }
 
+// P95ResourcesSize возвращает размер с индексом floor(0.05 × N) в порядке возрастания.
 func (c *Collector) P95ResourcesSize() (int64, error) {
 	if len(c.Sizes) == 0 {
 		return 0, errors.New("no resources")
@@ -91,6 +100,7 @@ func (c *Collector) P95ResourcesSize() (int64, error) {
 	return c.Sizes[indexFor95percent], nil
 }
 
+// AVGResourceSize вычисляет средний размер ответа в байтах.
 func (c *Collector) AVGResourceSize() (float64, error) {
 	if len(c.Sizes) == 0 {
 		return 0, errors.New("no resources")
@@ -102,6 +112,7 @@ func (c *Collector) AVGResourceSize() (float64, error) {
 	return float64(sum) / float64(len(c.Sizes)), nil
 }
 
+// MaxResourcesSize возвращает максимальный размер ответа в байтах.
 func (c *Collector) MaxResourcesSize() int64 {
 	return c.MaxSizeBytes
 }
