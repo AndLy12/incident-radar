@@ -2,6 +2,7 @@
 package source
 
 import (
+	"errors"
 	"fmt"
 	"incidentradar/internal/config"
 	"os"
@@ -11,12 +12,23 @@ import (
 // OpenFile открывает локальный файл лога с расширением .log или .txt.
 func OpenFile(path string) (*os.File, error) {
 	if filepath.Ext(path) != ".log" && filepath.Ext(path) != ".txt" {
-		return nil, fmt.Errorf("path must end with .txt or .log")
+		return nil, ErrUnsupportedLogExtension
 	}
 
 	f, err := os.Open(path) // #nosec G304 -- Пользователь может намеренно открыть файл не из этой директории
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("%w: %w", ErrLogNotFound, err)
+	}
 	if err != nil {
 		return nil, err
+	}
+
+	fileStat, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if fileStat != nil && fileStat.IsDir() {
+		return nil, ErrLogIsDirectory
 	}
 	return f, nil
 }
@@ -38,11 +50,11 @@ func ExpandGlob(path string) ([]string, error) {
 			}
 		}
 		if flagExtNotInLogsFormatExtensions {
-			return nil, fmt.Errorf("file format not supported")
+			return nil, ErrUnsupportedLogFormat
 		}
 	}
 	if c == 0 {
-		return nil, fmt.Errorf("no logs found matching glob")
+		return nil, ErrNoMatchingLogs
 	}
 	return files, nil
 }

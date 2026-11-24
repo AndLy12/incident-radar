@@ -2,6 +2,7 @@
 package cli
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"incidentradar/internal/config"
@@ -30,10 +31,13 @@ func Parse(args []string, diagnostics io.Writer) (config.Config, error) {
 	fs.StringVar(&toStr, "to", "", "To file or directory")
 
 	if err := fs.Parse(args); err != nil {
-		return config.Config{}, err
+		if errors.Is(err, flag.ErrHelp) {
+			return config.Config{}, err
+		}
+		return config.Config{}, fmt.Errorf("%w: %w", ErrInvalidFlags, err)
 	}
 	if fs.NArg() != 0 {
-		return config.Config{}, fmt.Errorf("unexpected positional arguments: %s", fs.Arg(0))
+		return config.Config{}, fmt.Errorf("%w: %s", ErrUnexpectedPositionalArgument, fs.Arg(0))
 	}
 
 	var hasFrom, hasTo bool
@@ -67,7 +71,7 @@ func parseDate(dateStr string, has bool) (*time.Time, error) {
 
 	date, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
-		return nil, fmt.Errorf("invalid date %s, expended format YYYY-MM-DD", dateStr)
+		return nil, fmt.Errorf("%w %s, expended format YYYY-MM-DD", ErrInvalidDate, dateStr)
 	}
 	return &date, nil
 }

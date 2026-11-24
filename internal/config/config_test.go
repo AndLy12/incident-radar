@@ -1,11 +1,71 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 )
+
+// TestNewConfig проверяет параметры, которые конструктор возвращает вызывающему коду.
+func TestNewConfig(t *testing.T) {
+	const path = "logs/*.log"
+	output := filepath.Join(t.TempDir(), "report.json")
+
+	t.Run("формат по умолчанию и отсутствие дат", func(t *testing.T) {
+		cfg, err := NewConfig(path, "", output, nil, nil)
+		if err != nil {
+			t.Fatalf("NewConfig: %v", err)
+		}
+		if got := cfg.Format(); got != "json" {
+			t.Errorf("Format() = %q, ожидалось json", got)
+		}
+		if got := cfg.LogsPath(); got != path {
+			t.Errorf("LogsPath() = %q, ожидалось %q", got, path)
+		}
+		if got := cfg.Output(); got != output {
+			t.Errorf("Output() = %q, ожидалось %q", got, output)
+		}
+		if got, ok := cfg.From(); ok || !got.IsZero() {
+			t.Errorf("From() = (%v, %t), ожидалась отсутствующая дата", got, ok)
+		}
+		if got, ok := cfg.To(); ok || !got.IsZero() {
+			t.Errorf("To() = (%v, %t), ожидалась отсутствующая дата", got, ok)
+		}
+		layout := cfg.LayoutForLogLine()
+		const line = `192.0.2.1 - - [17/May/2015:08:05:32 +0000] "GET /health HTTP/1.1" 200 100 "-" "test"`
+		if !layout.MatchString(line) {
+			t.Error("шаблон не распознал корректную строку NGINX")
+		}
+	})
+
+	t.Run("копирование границ периода", func(t *testing.T) {
+		wantFrom := time.Date(2025, 3, 1, 0, 0, 0, 0, time.UTC)
+		wantTo := wantFrom.AddDate(0, 1, 0)
+		from, to := wantFrom, wantTo
+		cfg, err := NewConfig(path, "json", output, &from, &to)
+		if err != nil {
+			t.Fatalf("NewConfig: %v", err)
+		}
+
+		from = from.AddDate(0, 0, 1)
+		to = to.AddDate(0, 0, 1)
+		if got, ok := cfg.From(); !ok || !got.Equal(wantFrom) {
+			t.Errorf("From() = (%v, %t), ожидалось (%v, true)", got, ok, wantFrom)
+		}
+		if got, ok := cfg.To(); !ok || !got.Equal(wantTo) {
+			t.Errorf("To() = (%v, %t), ожидалось (%v, true)", got, ok, wantTo)
+		}
+	})
+
+	t.Run("причина ошибки валидации", func(t *testing.T) {
+		_, err := NewConfig(path, "markdown", output, nil, nil)
+		if !errors.Is(err, ErrInvalidConfig) || !errors.Is(err, ErrOutputExtensionMismatch) {
+			t.Errorf("NewConfig: получено %v, ожидалась ошибка конфигурации с причиной %v", err, ErrOutputExtensionMismatch)
+		}
+	})
+}
 
 type configTestCase struct {
 	name        string

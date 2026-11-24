@@ -3,7 +3,6 @@ package analytics
 
 import (
 	"cmp"
-	"errors"
 	"incidentradar/internal/parser"
 	"math"
 	"slices"
@@ -79,11 +78,11 @@ func (c *Collector) reverseSortSizes() {
 // Top10resources возвращает первые десять ресурсов после сортировки по счётчику.
 func (c *Collector) Top10resources() ([]ResourceRecord, error) {
 	if len(c.ResourceRecords) == 0 {
-		return nil, errors.New("no resource records found")
+		return nil, ErrNoResourceRecords
 	}
 	result := make([]ResourceRecord, 0)
 	c.SortResources()
-	for i := range 10 {
+	for i := range min(10, len(c.ResourceRecords)) {
 		result = append(result, c.ResourceRecords[i])
 	}
 	return result, nil
@@ -92,7 +91,7 @@ func (c *Collector) Top10resources() ([]ResourceRecord, error) {
 // P95ResourcesSize возвращает размер с индексом floor(0.05 × N) в порядке возрастания.
 func (c *Collector) P95ResourcesSize() (int64, error) {
 	if len(c.Sizes) == 0 {
-		return 0, errors.New("no resources")
+		return 0, ErrNoResponseSizes
 	}
 	c.reverseSortSizes()
 	quantity := len(c.Sizes)
@@ -103,7 +102,7 @@ func (c *Collector) P95ResourcesSize() (int64, error) {
 // AVGResourceSize вычисляет средний размер ответа в байтах.
 func (c *Collector) AVGResourceSize() (float64, error) {
 	if len(c.Sizes) == 0 {
-		return 0, errors.New("no resources")
+		return 0, ErrNoResponseSizes
 	}
 	sum := int64(0)
 	for _, size := range c.Sizes {

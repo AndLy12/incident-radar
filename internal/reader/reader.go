@@ -15,17 +15,22 @@ import (
 	"strings"
 )
 
+// IsHTTPSource сообщает, что источник нужно читать по HTTP или HTTPS.
+func IsHTTPSource(path string) bool {
+	return strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")
+}
+
 // ReadAndParseFile читает лог с диска или по HTTP и передаёт подходящие записи сборщику.
 func ReadAndParseFile(filter analytics.Filter, file string, collector *analytics.Collector) error {
 	var resource io.ReadCloser
-	if strings.HasPrefix(file, "http://") || strings.HasPrefix(file, "https://") {
+	if IsHTTPSource(file) {
 		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, file, nil)
 		if err != nil {
-			return err
+			return fmt.Errorf("%w: %w", ErrHTTPSourceUnavailable, err)
 		}
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			return err
+			return fmt.Errorf("%w: %w", ErrHTTPSourceUnavailable, err)
 		}
 		resource = resp.Body
 		defer func() {
@@ -34,6 +39,9 @@ func ReadAndParseFile(filter analytics.Filter, file string, collector *analytics
 				log.Println(err)
 			}
 		}()
+		if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+			return fmt.Errorf("%w: %s returned %s", ErrHTTPStatus, file, resp.Status)
+		}
 	} else {
 		var err error
 		resource, err = source.OpenFile(file)

@@ -24,24 +24,20 @@ func SplitLine(s string) (LogRecord, error) {
 	)
 	matches := re.FindStringSubmatch(s)
 	if matches == nil {
-		return LogRecord{}, fmt.Errorf("invalid log line: %s", s)
+		return LogRecord{}, fmt.Errorf("%w: %s", ErrInvalidLogLine, s)
 	}
 	timestamp, err := time.Parse("02/Jan/2006:15:04:05 -0700", matches[3])
 	if err != nil {
-		return LogRecord{}, fmt.Errorf("parse timestamp %s: %w", matches[3], err)
+		return LogRecord{}, fmt.Errorf("%w %s: %w", ErrInvalidTimestamp, matches[3], err)
 	}
 	size, err := strconv.ParseInt(matches[8], 10, 64)
 	if err != nil {
-		return LogRecord{}, fmt.Errorf(
-			"parse response size %q: %w",
-			matches[8],
-			err,
-		)
+		return LogRecord{}, fmt.Errorf("%w %q: %w", ErrInvalidResponseSize, matches[8], err)
 	}
 
 	status, err := strconv.Atoi(matches[7])
 	if err != nil {
-		return LogRecord{}, fmt.Errorf("parse response status %s: %w", matches[7], err)
+		return LogRecord{}, fmt.Errorf("%w %s: %w", ErrInvalidResponseStatus, matches[7], err)
 	}
 
 	return LogRecord{

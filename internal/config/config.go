@@ -2,7 +2,6 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -65,31 +64,34 @@ func (c Config) To() (time.Time, bool) {
 }
 
 // validate проверяет путь к логам, параметры отчёта и порядок дат.
-func (c Config) validate() error {
+func (c *Config) validate() error {
 	if c.logsPath == "" {
-		return fmt.Errorf("logsPath required")
+		return ErrMissingLogsPath
 	}
 
+	if c.format == "" {
+		c.format = "json"
+	}
 	if c.format != "json" && c.format != "markdown" {
-		return fmt.Errorf("format must be json or md")
+		return ErrUnsupportedFormat
 	}
 	if c.output == "" {
-		return fmt.Errorf("output must be set")
+		return ErrMissingOutput
 	}
 
 	outputFileExtension := filepath.Ext(c.output)
 	if outputFileExtension != outputFormatExtensions[c.format] {
-		return fmt.Errorf("output file extension does not match format")
+		return ErrOutputExtensionMismatch
 	}
 	_, err := os.Stat(c.output)
 	if err == nil {
-		return fmt.Errorf("output file already exists")
+		return ErrOutputExists
 	} else if !os.IsNotExist(err) {
 		return err
 	}
 
 	if c.from != nil && c.to != nil && (c.to.Before(*c.from) || c.to.Equal(*c.from)) {
-		return fmt.Errorf("from must be < to")
+		return ErrInvalidDateRange
 	}
 
 	return nil
@@ -117,7 +119,7 @@ func NewConfig(path, format, output string, from, to *time.Time) (Config, error)
 		to:   cloneDate(to),
 	}
 	if err := config.validate(); err != nil {
-		return Config{}, errors.New("invalid config")
+		return Config{}, fmt.Errorf("%w: %w", ErrInvalidConfig, err)
 	}
 	return config, nil
 }
