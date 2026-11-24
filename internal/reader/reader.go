@@ -1,7 +1,9 @@
+// Package reader читает и обрабатывает записи из источников логов.
 package reader
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"incidentradar/internal/analytics"
@@ -9,22 +11,52 @@ import (
 	"incidentradar/internal/source"
 	"io"
 	"log"
+	"net/http"
+	"strings"
 )
 
-func ReadAndParseFile(filter analytics.Filter, file string) ([]parser.LogRecord, error) {
-	f, err := source.OpenFile(file)
-	if err != nil {
-		return []parser.LogRecord{}, err
-	}
-	defer func() {
-		if err := f.Close(); err != nil {
-			log.Println(err)
-		}
-	}()
+// IsHTTPSource сообщает, что источник нужно читать по HTTP или HTTPS.
+func IsHTTPSource(path string) bool {
+	return strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")
+}
 
-	logs := make([]parser.LogRecord, 0)
+// ReadAndParseFile читает лог с диска или по HTTP и передаёт подходящие записи сборщику.
+func ReadAndParseFile(filter analytics.Filter, file string, collector *analytics.Collector) error {
+	var resource io.ReadCloser
+	if IsHTTPSource(file) {
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, file, nil)
+		if err != nil {
+			return fmt.Errorf("%w: %w", ErrHTTPSourceUnavailable, err)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("%w: %w", ErrHTTPSourceUnavailable, err)
+		}
+		resource = resp.Body
+		defer func() {
+			err = resp.Body.Close()
+			if err != nil {
+				log.Println(err)
+			}
+		}()
+		if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+			return fmt.Errorf("%w: %s returned %s", ErrHTTPStatus, file, resp.Status)
+		}
+	} else {
+		var err error
+		resource, err = source.OpenFile(file)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if err = resource.Close(); err != nil {
+				log.Println(err)
+			}
+		}()
+	}
+
 	// Читаем логи из файла
-	scanner := bufio.NewScanner(f)
+	scanner := bufio.NewScanner(resource)
 	var lineNumber int
 	for scanner.Scan() {
 		lineNumber++
@@ -39,12 +71,12 @@ func ReadAndParseFile(filter analytics.Filter, file string) ([]parser.LogRecord,
 
 		// Фильтруем по дате
 		if filter.Match(lr.Time) {
-			logs = append(logs, lr)
+			collector.Add(lr)
 			fmt.Println(lr)
 		}
 	}
 	if err := scanner.Err(); !errors.Is(err, io.EOF) {
-		return []parser.LogRecord{}, err
+		return err
 	}
-	return logs, nil
+	return nil
 }

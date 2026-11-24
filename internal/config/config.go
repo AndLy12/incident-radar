@@ -1,15 +1,23 @@
+// Package config хранит и проверяет параметры обработки логов.
 package config
 
 import (
-	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"time"
 )
 
-var logsFormatExtensions []string = []string{".md", ".txt"}
+var outputFormatExtensions = map[string]string{
+	"json":     ".json",
+	"markdown": ".md",
+}
 
+// LogsFormatExtensions содержит поддерживаемые расширения файлов логов.
+var LogsFormatExtensions = []string{".log", ".txt"}
+
+// Config хранит параметры источника логов, отчёта и фильтрации по датам.
 type Config struct {
 	logsPath         string
 	format           string
@@ -19,22 +27,27 @@ type Config struct {
 	to               *time.Time
 }
 
+// LayoutForLogLine возвращает регулярное выражение для строки лога.
 func (c Config) LayoutForLogLine() regexp.Regexp {
 	return c.layoutForLogLine
 }
 
+// LogsPath возвращает путь или маску для поиска логов.
 func (c Config) LogsPath() string {
 	return c.logsPath
 }
 
+// Format возвращает формат отчёта.
 func (c Config) Format() string {
 	return c.format
 }
 
+// Output возвращает путь к файлу отчёта.
 func (c Config) Output() string {
 	return c.output
 }
 
+// From возвращает нижнюю границу периода и признак её наличия.
 func (c Config) From() (time.Time, bool) {
 	if c.from == nil {
 		return time.Time{}, false
@@ -42,6 +55,7 @@ func (c Config) From() (time.Time, bool) {
 	return *c.from, true
 }
 
+// To возвращает верхнюю границу периода и признак её наличия.
 func (c Config) To() (time.Time, bool) {
 	if c.to == nil {
 		return time.Time{}, false
@@ -49,33 +63,41 @@ func (c Config) To() (time.Time, bool) {
 	return *c.to, true
 }
 
-func (c Config) validate() error {
+// validate проверяет путь к логам, параметры отчёта и порядок дат.
+func (c *Config) validate() error {
 	if c.logsPath == "" {
-		return fmt.Errorf("logsPath required")
-	}
-	if c.format != "json" && c.format != "markdown" {
-		return fmt.Errorf("format must be json or md")
-	}
-	if c.output == "" {
-		return fmt.Errorf("output must be set")
-	}
-	if c.from != nil && c.to != nil && c.from.Before(*c.to) {
-		return fmt.Errorf("from must be <= to")
+		return ErrMissingLogsPath
 	}
 
-	logsFileExtension := filepath.Ext(c.logsPath)
-	var flagExtNotInLogsFormatExtensions bool = true
-	for _, ext := range logsFormatExtensions {
-		if logsFileExtension == ext {
-			flagExtNotInLogsFormatExtensions = false
-		}
+	if c.format == "" {
+		c.format = "json"
 	}
-	if flagExtNotInLogsFormatExtensions {
-		return fmt.Errorf("file format not supported")
+	if c.format != "json" && c.format != "markdown" {
+		return ErrUnsupportedFormat
 	}
+	if c.output == "" {
+		return ErrMissingOutput
+	}
+
+	outputFileExtension := filepath.Ext(c.output)
+	if outputFileExtension != outputFormatExtensions[c.format] {
+		return ErrOutputExtensionMismatch
+	}
+	_, err := os.Stat(c.output)
+	if err == nil {
+		return ErrOutputExists
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+
+	if c.from != nil && c.to != nil && (c.to.Before(*c.from) || c.to.Equal(*c.from)) {
+		return ErrInvalidDateRange
+	}
+
 	return nil
 }
 
+// NewConfig создаёт и проверяет конфигурацию обработки логов.
 func NewConfig(path, format, output string, from, to *time.Time) (Config, error) {
 	config := Config{
 		logsPath: path,
@@ -97,11 +119,12 @@ func NewConfig(path, format, output string, from, to *time.Time) (Config, error)
 		to:   cloneDate(to),
 	}
 	if err := config.validate(); err != nil {
-		return Config{}, errors.New("invalid config")
+		return Config{}, fmt.Errorf("%w: %w", ErrInvalidConfig, err)
 	}
 	return config, nil
 }
 
+// cloneDate копирует значение даты, сохраняя nil для отсутствующей даты.
 func cloneDate(date *time.Time) *time.Time {
 	if date == nil {
 		return nil
